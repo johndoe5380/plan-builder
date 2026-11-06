@@ -522,12 +522,26 @@ function renderPane() {
   if (pk.tab === "lib") {
     const regions = ["All", ...new Set(LIB.map(x => x.region))], q = pk.q.toLowerCase();
     const list = LIB.filter(x => (pk.region === "All" || x.region === pk.region) && (!q || (x.name + " " + x.title + " " + x.region).toLowerCase().includes(q)));
+    const key = apiKey(), qq = pk.q.trim();
+    const ytBlock = !key || qq.length < 3 ? "" : `
+      <h4 class="res-h">From YouTube${pk.libYtQ === qq && pk.libYt ? ` <span>${pk.libYt.length} results</span>` : ""}</h4>
+      ${pk.libYtQ !== qq || pk.libYtLoading ? '<div class="empty">Searching YouTube…</div>'
+        : pk.libYtErr ? `<div class="empty">${esc(pk.libYtErr)}</div>`
+        : pk.libYt && pk.libYt.length ? `<div class="grid">${pk.libYt.map(v => card(v, '<span class="tag yt">YouTube</span>')).join("")}</div>`
+        : '<div class="empty">No YouTube results. Try different words.</div>'}`;
     pane.innerHTML = `
-      <div class="search"><input class="in" id="pk-q" type="search" placeholder="Search ${LIB.length} exercises (e.g. wall sit, rotator cuff)" value="${esc(pk.q)}" aria-label="Search library"></div>
+      <div class="search"><input class="in" id="pk-q" type="search" placeholder="${key ? "Search the library and YouTube (e.g. wall sit, copenhagen plank)" : `Search ${LIB.length} library exercises (e.g. wall sit, rotator cuff)`}" value="${esc(pk.q)}" aria-label="Search exercises"></div>
       <div class="chips">${regions.map(r => `<button class="chip" type="button" data-region="${esc(r)}" aria-pressed="${r === pk.region}">${esc(r)}</button>`).join("")}</div>
+      ${qq && key ? `<h4 class="res-h">Exercise library <span>${list.length} match${list.length === 1 ? "" : "es"}</span></h4>` : ""}
       ${list.length ? `<div class="grid">${list.map(x => card(x, `<span class="tag">${esc(x.region)}</span>`)).join("")}</div>`
-        : `<div class="empty">Nothing in the library matches <b>${esc(pk.q)}</b>.<br><button class="btn sm" style="margin-top:10px" type="button" data-goyt="1">Search YouTube for “${esc(pk.q)}”</button></div>`}`;
-    const qi = $("#pk-q"); qi.oninput = () => { pk.q = qi.value; const pos = qi.selectionStart; renderPane(); const n = $("#pk-q"); n.focus(); n.setSelectionRange(pos, pos); };
+        : key ? (qq.length < 3 ? '<div class="empty">Keep typing to search YouTube too.</div>' : "")
+        : `<div class="empty">Nothing in the library matches <b>${esc(pk.q)}</b>.<br><button class="btn sm" style="margin-top:10px" type="button" data-goyt="1">Search YouTube for “${esc(pk.q)}”</button></div>`}
+      ${ytBlock}`;
+    const qi = $("#pk-q"); qi.oninput = () => {
+      pk.q = qi.value; const pos = qi.selectionStart; renderPane(); const n = $("#pk-q"); n.focus(); n.setSelectionRange(pos, pos);
+      clearTimeout(pk.libT); const v = pk.q.trim();
+      if (apiKey() && v.length >= 3 && v !== pk.libYtQ) pk.libT = setTimeout(() => libYtSearch(v), 600);
+    };
   } else if (pk.tab === "yt") {
     if (!apiKey()) {
       pane.innerHTML = `<div class="note-box"><b>Live YouTube search needs a free API key.</b><ol>
@@ -557,6 +571,22 @@ async function ytSearch() {
   } catch (err) { pk.ytErr = "YouTube search failed: " + err.message + " Check the API key in Settings."; pk.ytRes = null; }
   pk.ytLoading = false; renderPane();
 }
+async function fetchYt(q) {
+  const u = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoDuration=short&maxResults=18&safeSearch=strict&relevanceLanguage=en&q=" + encodeURIComponent(q) + "&key=" + encodeURIComponent(apiKey());
+  const j = await (await fetch(u)).json();
+  if (j.error) throw new Error(j.error.message || "Search failed");
+  return j.items.map(it => ({ id: it.id.videoId, title: decodeHtml(it.snippet.title), channel: it.snippet.channelTitle }));
+}
+async function libYtSearch(q) {
+  pk.libYtQ = q; pk.libYtLoading = true; pk.libYtErr = ""; if (pk.tab === "lib" && pk.q.trim() === q) renderPaneKeepFocus();
+  try { const res = await fetchYt(q); if (pk.libYtQ !== q) return; pk.libYt = res; }
+  catch (err) { if (pk.libYtQ !== q) return; pk.libYt = null; pk.libYtErr = "YouTube search failed: " + err.message + " Check the API key in Settings."; }
+  pk.libYtLoading = false; if (pk.tab === "lib" && pk.q.trim() === q) renderPaneKeepFocus();
+}
+function renderPaneKeepFocus() {
+  const a = document.activeElement, had = a && a.id === "pk-q", pos = had ? a.selectionStart : 0;
+  renderPane(); if (had) { const n = $("#pk-q"); n.focus(); n.setSelectionRange(pos, pos); }
+}
 function decodeHtml(s) { const t = document.createElement("textarea"); t.innerHTML = s; return t.value; }
 function parseYt(s) { s = (s || "").trim(); const m = s.match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/) || s.match(/^([A-Za-z0-9_-]{11})$/); return m ? m[1] : null; }
 let pasteSeq = 0;
@@ -570,7 +600,8 @@ $("#pk-pane").addEventListener("click", e => {
   const r = e.target.closest("[data-region]"); if (r) { pk.region = r.dataset.region; renderPane(); return; }
   if (e.target.closest("[data-goyt]")) { pk.ytQ = pk.q; setTab("yt"); if (apiKey()) ytSearch(); return; }
   const c = e.target.closest("[data-pick]"); if (!c) return;
-  const v = (pk.tab === "lib" ? LIB : (pk.ytRes || [])).find(x => x.id === c.dataset.pick); if (!v) return;
+  const pool = pk.tab === "lib" ? LIB.concat(pk.libYt || []) : (pk.ytRes || []);
+  const v = pool.find(x => x.id === c.dataset.pick); if (!v) return;
   pk.sel = { id: v.id, title: v.title, channel: v.channel, name: v.name || "" };
   $$("#pk-pane .vc").forEach(x => x.setAttribute("aria-selected", x.dataset.pick === v.id)); renderPreview();
 });
