@@ -14,7 +14,8 @@ const ytUrl = id => `https://www.youtube.com/watch?v=${id}`;
 const PLAY = '<svg width="14" height="16" viewBox="0 0 18 20" aria-hidden="true"><path d="M0 0l18 10L0 20z" fill="#003333"/></svg>';
 const PLAY_L = '<svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M0 0l18 10L0 20z" fill="#003333"/></svg>';
 const TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
-const BELL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg>';
+const EYE = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const BELL ='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg>';
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 const fmtDate = d => { if (!d) return ""; const t = new Date(d); return isNaN(t) ? "" : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); };
@@ -42,7 +43,7 @@ let pollTimer = null;
 async function route() {
   clearInterval(pollTimer);
   const h = location.hash.slice(1);
-  if (h.startsWith("p=")) return renderPatient(h.slice(2), false);
+  if (h.startsWith("p=")) { const [tok, ...flags] = h.slice(2).split("&"); return renderPatient(tok, flags.includes("preview")); }
   const { data } = await sb.auth.getSession();
   if (!data.session) return renderAuth();
   S.user = data.session.user;
@@ -210,13 +211,13 @@ function renderMain() {
       </div>
       <div class="actions">
         <span class="saved" id="saved">Saved</span>
-        <a class="btn" href="#preview">Preview as client</a>
+        <a class="btn preview-btn" href="${esc(patientUrl(c))}&preview" target="_blank" rel="noopener">${EYE} Preview ${esc(first(c.name) || "client")}'s page <span aria-hidden="true">↗</span></a>
         <button class="btn" data-act="copy-link" type="button">Copy link</button>
         <button class="btn primary" data-act="email-link" type="button">${c.plan.sentAt ? "Resend plan" : `Send plan to ${esc(first(c.name) || "client")}`}</button>
       </div>
     </div>
     ${c.plan.sentAt ? `<p class="sent-line">Plan sent ${esc(fmtDate(c.plan.sentAt))}. Edits you make now update their page automatically, no need to resend.</p>`
-      : `<p class="draft-line"><b>Draft.</b> ${esc(first(c.name) || "This client")} hasn't been sent their plan yet. Build it below, check it with <b>Preview as client</b>, then click <b>Send plan</b> to email it${c.email ? "" : " (you can type their address in your email app)"}, or <b>Copy link</b> to text it.</p>`}
+      : `<p class="draft-line"><b>Draft.</b> ${esc(first(c.name) || "This client")} hasn't been sent their plan yet. Build it below, check it with <b>Preview</b>, then click <b>Send plan</b> to email it${c.email ? "" : " (you can type their address in your email app)"}, or <b>Copy link</b> to text it.</p>`}
     <div class="fields" style="margin-top:16px">
       <label class="f" for="f-email">Client email (optional)<input class="in" id="f-email" type="email" data-b="email" value="${esc(c.email)}"></label>
       <label class="f" for="f-focus">Focus<input class="in" id="f-focus" data-b="focus" value="${esc(c.focus)}"></label>
@@ -789,7 +790,7 @@ async function renderPatient(token, isPreview) {
   const activeR = p.restrictions.filter(r => r.text && (!r.until || r.until >= tdy));
   const activeC = p.care.filter(x => x.title && (!x.until || x.until >= tdy));
   $("#app").innerHTML = `
-  ${isPreview ? `<div class="backbar"><div class="pv-wrap gut"><span>Client preview. Anything you post here shows up as the client.</span><button type="button" id="back">Back to editor</button></div></div>` : ""}
+  ${isPreview ? `<div class="backbar"><div class="pv-wrap gut"><span><b>Preview.</b> This is exactly what ${esc(first(c.name) || "your client")} sees. It updates as you edit (reload this tab). Anything you post here shows up as the client.</span><button type="button" id="back">Close preview</button></div></div>` : ""}
   <div class="pv">
   <header class="pv-band"><div class="pv-wrap gut">
     <div class="pv-top"><img src="logo.png" alt="Onward Physical Therapy"><span class="eyebrow">Home exercise program</span></div>
@@ -869,7 +870,7 @@ async function renderPatient(token, isPreview) {
   <footer class="pv-foot"><div class="pv-wrap gut"><span>Onward Physical Therapy</span><span>Bookmark this page. ${esc(T)} keeps it up to date.</span></div></footer>
   </div>`;
 
-  if (isPreview) $("#back").onclick = () => { location.hash = ""; };
+  if (isPreview) $("#back").onclick = () => { window.close(); setTimeout(() => { location.href = location.pathname; }, 200); };
   $$("[data-jump]").forEach(a => a.onclick = ev => { ev.preventDefault(); $("#" + a.dataset.jump).scrollIntoView({ behavior: "smooth" }); });
   $$("[data-play]").forEach(b => b.addEventListener("click", () => {
     b.innerHTML = `<iframe src="${embed(b.dataset.play)}" title="Exercise video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`; b.style.cursor = "default"; b.removeAttribute("data-play");
@@ -878,12 +879,12 @@ async function renderPatient(token, isPreview) {
   bindCare();
   bindPatientForms(th);
   renderPatientLists();
-  setTimeout(() => sb.rpc("patient_mark_read", { p_token: token }), 4000);
+  if (!isPreview) setTimeout(() => sb.rpc("patient_mark_read", { p_token: token }), 4000);
   pollTimer = setInterval(refreshPatient, 20000);
 }
 async function refreshPatient() {
   const { data } = await sb.rpc("patient_get", { p_token: P.token });
-  if (data) { const had = P.data.entries.length; P.data = data; renderPatientLists(); if (data.entries.length > had && data.entries.some(e => e.author === "therapist" && !e.read_by_patient)) { toast("New reply from " + (first(data.client.therapist_name) || "your therapist")); setTimeout(() => sb.rpc("patient_mark_read", { p_token: P.token }), 4000); } }
+  if (data) { const had = P.data.entries.length; P.data = data; renderPatientLists(); if (data.entries.length > had && data.entries.some(e => e.author === "therapist" && !e.read_by_patient)) { toast("New reply from " + (first(data.client.therapist_name) || "your therapist")); if (!P.preview) setTimeout(() => sb.rpc("patient_mark_read", { p_token: P.token }), 4000); } }
 }
 function localDay(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function fmtDay(s) { const d = new Date(s + "T12:00:00"); return isNaN(d) ? s : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
