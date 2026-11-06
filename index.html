@@ -203,6 +203,77 @@ dialog::backdrop{background:rgba(0,20,20,.55)}
 .backbar .pv-wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-block:8px;flex-wrap:wrap}
 .backbar button{background:#1d1400;color:#fff;border:none;border-radius:7px;padding:6px 11px;font-weight:600;cursor:pointer}
 
+/* ---------- v2: auth, tabs, activity, inbox, patient interactions ---------- */
+.auth-wrap{min-height:100vh;display:grid;place-items:center;padding-block:40px}
+.auth{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.auth-band{background:linear-gradient(135deg,var(--brand),var(--brand-2));padding:20px 22px;display:flex;justify-content:space-between;align-items:center}
+.auth-band img{height:38px}
+.auth-body{padding:22px;display:grid;gap:14px}
+.auth h1{font:700 30px/1 var(--display);text-transform:uppercase;margin:0}
+.auth .btn.primary{width:100%;justify-content:center;padding:11px}
+.err{margin:0;color:var(--stop);font-size:13.5px}
+.saved{font-size:12.5px;color:var(--muted);align-self:center;padding-right:4px}
+.saved.busy{color:var(--warn)} .saved.bad{color:var(--stop)}
+.pl-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dot-n{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--stop);color:#fff;font:700 11.5px/1 var(--body)}
+.etabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.etabs button{border:none;background:none;padding:10px 14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;gap:8px;align-items:center}
+.etabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.empty-state{text-align:center;display:grid;gap:12px;justify-items:center;padding:40px 20px}
+.empty-state p{max-width:52ch;color:var(--muted);margin:0}
+.act{border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px}
+.act + .act{margin-top:10px}
+.act.new{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.act-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.act-kind{font-weight:700;font-size:14px}
+.act-body{margin:0;white-space:pre-line}
+.when{color:var(--muted);font-size:12px;margin-left:auto}
+.reply .when,.pt-head .when{margin-left:6px}
+.newpill{font:700 10.5px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:var(--accent-fg);padding:4px 7px;border-radius:99px}
+.newpill.big{font-size:12px;padding:6px 10px}
+.painchip{font:600 12.5px/1 var(--mono);padding:4px 8px;border-radius:6px;color:#fff}
+.painchip.lo{background:var(--ok)} .painchip.hi{background:var(--stop)}
+.reply{border-left:3px solid var(--line);padding:4px 0 4px 12px;font-size:14px}
+.reply.therapist{border-left-color:var(--accent)}
+.reply p{margin:2px 0 0;white-space:pre-line}
+.reply-form{display:flex;gap:8px;align-items:flex-start}
+.reply-form textarea{flex:1;min-width:0}
+.trend{position:relative;height:140px;display:flex;align-items:flex-end;gap:6px;padding:0 0 0 22px;border-bottom:1px solid var(--line)}
+.trend-line{position:absolute;left:0;right:0;border-top:2px dashed var(--warn)}
+.trend-line span{position:absolute;left:0;top:-9px;font:600 11px var(--mono);color:var(--warn);background:var(--surface);padding-right:4px}
+.tb{flex:1;max-width:36px;background:var(--ok);border-radius:4px 4px 0 0;position:relative;min-height:4px}
+.tb.hi{background:var(--stop)}
+.tb span{position:absolute;top:-17px;left:0;right:0;text-align:center;font:500 11px var(--mono);color:var(--muted)}
+.inbox-wrap{position:relative}
+.bell{display:inline-flex;align-items:center;gap:6px;position:relative}
+.badge{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;border-radius:99px;background:var(--stop);color:#fff;font:700 11px/19px var(--body);text-align:center;padding:0 5px}
+.inbox{position:absolute;right:0;top:calc(100% + 8px);width:min(360px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:40}
+.ib-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.ib-item{display:grid;gap:3px;width:100%;text-align:left;border:none;border-bottom:1px solid var(--line);background:none;padding:11px 14px;cursor:pointer;font-size:14px}
+.ib-item:hover{background:var(--accent-soft)}
+.ib-item small{color:var(--muted);font-size:12.5px}
+.ib-item .when{margin:0}
+.ib-foot{padding:12px 14px}
+.pv-nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pv-nav a{color:var(--on-brand);text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,.35);padding:7px 12px;border-radius:99px}
+.pv-nav a:hover{background:rgba(255,255,255,.1)}
+.pv-h{font:700 26px/1 var(--display);text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px}
+.pv-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px}
+.painpick{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+.painpick button{height:40px;border-radius:7px;border:2px solid transparent;font:600 14px var(--mono);color:#fff;cursor:pointer;opacity:.55}
+.painpick button.g{background:var(--ok)} .painpick button.r{background:var(--stop)}
+.painpick button[aria-checked="true"]{opacity:1;border-color:var(--fg);transform:scale(1.06)}
+.warnline{margin:0;color:var(--stop);font-weight:600;font-size:14px}
+.sub{font-size:15px;margin:18px 0 8px}
+.pt-list{display:grid;gap:8px;margin-top:10px}
+.pt-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px;display:grid;gap:6px;font-size:14.5px}
+.pt-item > p{margin:0;white-space:pre-line}
+.pt-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.exnotes .pt-list{margin-top:0}
+.addnote summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.addnote form{display:grid;gap:8px;margin-top:8px;justify-items:start}
+.addnote textarea{width:100%}
+
 @media (max-width:900px){
   .shell{grid-template-columns:1fr}
   .rail{position:static}
@@ -255,13 +326,19 @@ dialog::backdrop{background:rgba(0,20,20,.55)}
       <p class="hint" id="st-key-src"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn primary" id="st-save" type="button">Save key</button>
-        <button class="btn" id="st-reset" type="button">Reset demo data</button>
       </div>
-      <p class="hint">Patients and plans are saved in this browser only. Reset brings back the two sample patients.</p>
     </div>
   </div>
 </dialog>
 
+<dialog id="newclient" aria-labelledby="nc-title">
+  <div class="dlg" style="max-width:520px">
+    <div class="dlg-head"><h3 id="nc-title">New client</h3><button class="btn sm" id="nc-close" type="button">Close</button></div>
+    <div id="nc-body" style="padding:16px 18px 20px"></div>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="library.js"></script>
 <script src="app.js"></script>
