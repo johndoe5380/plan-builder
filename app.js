@@ -171,7 +171,7 @@ function renderRail() {
   box.innerHTML = list.length ? list.map(c => {
     const n = c.plan.sections.reduce((a, s) => a + s.exercises.length, 0), u = unreadFor(c.id);
     return `<li><button type="button" data-act="pick-client" data-id="${c.id}" aria-current="${c.id === S.curId}">
-      <span class="pl-top"><b>${esc(c.name || "Untitled client")}</b>${u ? `<span class="dot-n">${u}</span>` : ""}</span>
+      <span class="pl-top"><b>${esc(c.name || "Untitled client")}</b>${u ? `<span class="dot-n">${u}</span>` : c.plan.sentAt ? "" : '<span class="draft-tag">Draft</span>'}</span>
       <small>${esc(c.focus || "No focus set")} · ${n} exercise${n === 1 ? "" : "s"}</small></button></li>`;
   }).join("") : `<li class="hint" style="padding:8px 4px">${S.clients.length ? "No match." : "No clients yet."}</li>`;
   paintBadges();
@@ -205,9 +205,11 @@ function renderMain() {
         <span class="saved" id="saved">Saved</span>
         <a class="btn" href="#preview">Preview as client</a>
         <button class="btn" data-act="copy-link" type="button">Copy link</button>
-        <button class="btn primary" data-act="email-link" type="button">Email link</button>
+        <button class="btn primary" data-act="email-link" type="button">${c.plan.sentAt ? "Resend plan" : `Send plan to ${esc(first(c.name) || "client")}`}</button>
       </div>
     </div>
+    ${c.plan.sentAt ? `<p class="sent-line">Plan sent ${esc(fmtDate(c.plan.sentAt))}. Edits you make now update their page automatically, no need to resend.</p>`
+      : `<p class="draft-line"><b>Draft.</b> ${esc(first(c.name) || "This client")} hasn't been sent their plan yet. Build it below, check it with <b>Preview as client</b>, then click <b>Send plan</b>.</p>`}
     <div class="fields" style="margin-top:16px">
       <label class="f" for="f-email">Client email<input class="in" id="f-email" type="email" data-b="email" value="${esc(c.email)}"></label>
       <label class="f" for="f-focus">Focus<input class="in" id="f-focus" data-b="focus" value="${esc(c.focus)}"></label>
@@ -360,10 +362,13 @@ async function copy(text, msg) {
   catch (err) { window.prompt("Copy this:", text); }
 }
 function emailLink(c) {
+  const nEx = c.plan.sections.reduce((a, s) => a + s.exercises.filter(e => e.name).length, 0);
+  if (!nEx) { toast("Add at least one exercise before sending the plan"); return; }
+  if (!c.email) { toast("Add the client's email first"); const f = $("#f-email"); if (f) f.focus(); return; }
+  if (!c.plan.sentAt) { c.plan.sentAt = new Date().toISOString(); clearTimeout(S.saveT); saveNow(); renderRail(); setTimeout(renderMain, 300); }
   const name = first(c.name) || "there", ther = c.therapist_name || myName() || "your therapist";
   const subject = "Your home exercise program";
   const body = `Hi ${name},\n\nHere's your home exercise program. It has your exercises with demo videos, and you can log pain, add notes, or send me questions right from the page:\n\n${patientUrl(c)}\n\nBookmark it. I'll update it as we go.\n\n${ther}`;
-  if (!c.email) toast("Add the client's email first, then click Email link again");
   location.href = `mailto:${encodeURIComponent(c.email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -375,8 +380,8 @@ function openNewClient() {
       <label class="f" for="nc-name">Client name<input class="in" id="nc-name" required autocomplete="off"></label>
       <label class="f" for="nc-email">Client email<input class="in" id="nc-email" type="email" required autocomplete="off"></label>
       <label class="f" for="nc-focus">Focus<input class="in" id="nc-focus" placeholder="e.g. Shoulder rehab" autocomplete="off"></label>
-      <p class="hint">After you save, your mail app opens with their private link ready to send.</p>
-      <div><button class="btn primary" type="submit" id="nc-go">Save and email link</button></div>
+      <p class="hint">Next you'll build their plan. Nothing is sent until you click <b>Send plan</b>.</p>
+      <div><button class="btn primary" type="submit" id="nc-go">Save client</button></div>
     </form>`;
   nc.showModal ? nc.showModal() : nc.setAttribute("open", "");
   setTimeout(() => $("#nc-name").focus(), 30);
@@ -387,8 +392,7 @@ function openNewClient() {
     if (error) { toast("Couldn't add client: " + error.message); $("#nc-go").disabled = false; return; }
     data.plan = normPlan(data.plan); S.clients.unshift(data); S.curId = data.id; S.tab = "plan";
     nc.close(); renderRail(); renderMain();
-    emailLink(data);
-    setTimeout(() => toast(`${first(data.name)} added. Now build their plan.`), 400);
+    toast(`${first(data.name)} added. Build their plan, then click Send plan.`);
   };
 }
 $("#nc-close").onclick = () => nc.close();
