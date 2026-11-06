@@ -153,6 +153,7 @@ async function renderClinician() {
     <aside class="rail">
       <div class="rail-head"><h2>Clients</h2><button class="btn sm primary" data-act="new-client" type="button">+ New client</button></div>
       <input class="in" id="rail-q" type="search" placeholder="Find a client" aria-label="Find a client">
+      <div id="unsent"></div>
       <ul class="plist" id="plist"><li class="hint">Loading…</li></ul>
       <div class="rail-foot">Signed in as ${esc(myName() || S.user.email)} · <button class="btn link" data-act="signout" type="button" style="padding:0;font-size:12px">Sign out</button></div>
     </aside>
@@ -174,11 +175,14 @@ function renderRail() {
       <span class="pl-top"><b>${esc(c.name || "Untitled client")}</b>${u ? `<span class="dot-n">${u}</span>` : c.plan.sentAt ? "" : '<span class="draft-tag">Draft</span>'}</span>
       <small>${esc(c.focus || "No focus set")} · ${n} exercise${n === 1 ? "" : "s"}</small></button></li>`;
   }).join("") : `<li class="hint" style="padding:8px 4px">${S.clients.length ? "No match." : "No clients yet."}</li>`;
+  const ru = readyUnsent(), box2 = $("#unsent");
+  if (box2) box2.innerHTML = ru.length ? `<button class="unsent" type="button" data-act="go-unsent"><b>${ru.length} plan${ru.length === 1 ? "" : "s"} not sent yet</b><small>${esc(ru.map(c => first(c.name) || "Untitled").join(", "))}</small></button>` : "";
   paintBadges();
 }
 function paintBadges() {
   const b = $("#bell-n"); if (!b) return;
-  b.textContent = S.unread.length > 9 ? "9+" : S.unread.length; b.hidden = !S.unread.length;
+  const n = S.unread.length + readyUnsent().length;
+  b.textContent = n > 9 ? "9+" : n; b.hidden = !n;
   const t = $("#tab-act-n"); if (t && cur()) { const n = unreadFor(cur().id); t.textContent = n; t.hidden = !n; }
 }
 
@@ -209,9 +213,9 @@ function renderMain() {
       </div>
     </div>
     ${c.plan.sentAt ? `<p class="sent-line">Plan sent ${esc(fmtDate(c.plan.sentAt))}. Edits you make now update their page automatically, no need to resend.</p>`
-      : `<p class="draft-line"><b>Draft.</b> ${esc(first(c.name) || "This client")} hasn't been sent their plan yet. Build it below, check it with <b>Preview as client</b>, then click <b>Send plan</b>.</p>`}
+      : `<p class="draft-line"><b>Draft.</b> ${esc(first(c.name) || "This client")} hasn't been sent their plan yet. Build it below, check it with <b>Preview as client</b>, then click <b>Send plan</b> to email it${c.email ? "" : " (you can type their address in your email app)"}, or <b>Copy link</b> to text it.</p>`}
     <div class="fields" style="margin-top:16px">
-      <label class="f" for="f-email">Client email<input class="in" id="f-email" type="email" data-b="email" value="${esc(c.email)}"></label>
+      <label class="f" for="f-email">Client email (optional)<input class="in" id="f-email" type="email" data-b="email" value="${esc(c.email)}"></label>
       <label class="f" for="f-focus">Focus<input class="in" id="f-focus" data-b="focus" value="${esc(c.focus)}"></label>
       <label class="f" for="f-ther">Therapist<input class="in" id="f-ther" data-b="therapist_name" value="${esc(c.therapist_name)}"></label>
     </div>
@@ -325,7 +329,10 @@ document.addEventListener("click", async e => {
     case "signout": await sb.auth.signOut(); if (S.chan) sb.removeChannel(S.chan); S.chan = null; S.clients = []; S.curId = null; location.hash = ""; route(); break;
     case "new-client": openNewClient(); break;
     case "load-samples": b.disabled = true; await loadSamples(); break;
-    case "pick-client": clearTimeout(S.saveT); if (S.saveT) await saveNow(); S.curId = b.dataset.id; S.tab = unreadFor(S.curId) ? "activity" : "plan"; renderRail(); renderMain(); break;
+    case "pick-client":
+      clearTimeout(S.saveT); if (S.saveT) await saveNow();
+      if (c && c.id !== b.dataset.id && !c.plan.sentAt && exCount(c)) toast(`Reminder: ${first(c.name) || "that client"}'s plan hasn't been sent yet`);
+      S.curId = b.dataset.id; S.tab = unreadFor(S.curId) ? "activity" : "plan"; renderRail(); renderMain(); break;
     case "tab": S.tab = b.dataset.tab; renderMain(); break;
     case "add-goal": c.plan.goals.push({ title: "", detail: "", status: "Ongoing" }); rerender(); break;
     case "del-goal": c.plan.goals.splice(i, 1); rerender(); break;
@@ -337,7 +344,10 @@ document.addEventListener("click", async e => {
     case "del-sign": c.plan.guard.signs.splice(i, 1); rerender(); break;
     case "open-picker": openPicker({ mode: "add", si }); break;
     case "change-video": openPicker({ mode: "replace", si, ei }); break;
-    case "copy-link": copy(patientUrl(c), "Link copied"); break;
+    case "copy-link":
+      if (!c.plan.sentAt && !exCount(c)) { toast("Add at least one exercise before sharing the plan"); break; }
+      await copy(patientUrl(c), c.plan.sentAt ? "Link copied" : `Link copied. ${first(c.name) || "Client"}'s plan is marked as sent.`); markSent(c); break;
+    case "go-unsent": { const u = readyUnsent()[0]; if (u) { if (S.saveT) await saveNow(); S.curId = u.id; S.tab = "plan"; const ib = $("#inbox"); if (ib) ib.hidden = true; renderRail(); renderMain(); } break; }
     case "email-link": emailLink(c); break;
     case "archive":
       if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Click again to remove"; setTimeout(() => { b.dataset.confirm = ""; b.textContent = "Remove this client"; }, 3000); break; }
@@ -345,6 +355,10 @@ document.addEventListener("click", async e => {
       S.clients = S.clients.filter(x => x.id !== c.id); S.curId = (S.clients[0] || {}).id || null; S.tab = "plan";
       renderRail(); renderMain(); toast("Client removed. Their link no longer works."); break;
     case "send-reply": sendReply(b); break;
+    case "inbox-plan": {
+      $("#inbox").hidden = true; $("#bell").setAttribute("aria-expanded", "false");
+      if (S.saveT) await saveNow(); S.curId = b.dataset.id; S.tab = "plan"; renderRail(); renderMain(); break;
+    }
     case "inbox-open": {
       $("#inbox").hidden = true; $("#bell").setAttribute("aria-expanded", "false");
       if (S.saveT) await saveNow(); S.curId = b.dataset.id; S.tab = "activity"; renderRail(); renderMain(); break;
@@ -361,11 +375,16 @@ async function copy(text, msg) {
   try { await navigator.clipboard.writeText(text); toast(msg); }
   catch (err) { window.prompt("Copy this:", text); }
 }
+const exCount = c => c.plan.sections.reduce((a, s) => a + s.exercises.filter(e => e.name).length, 0);
+const readyUnsent = () => S.clients.filter(c => !c.plan.sentAt && exCount(c) > 0);
+function markSent(c) {
+  if (c.plan.sentAt) return;
+  c.plan.sentAt = new Date().toISOString(); clearTimeout(S.saveT); saveNow(); renderRail(); setTimeout(renderMain, 300);
+}
 function emailLink(c) {
   const nEx = c.plan.sections.reduce((a, s) => a + s.exercises.filter(e => e.name).length, 0);
   if (!nEx) { toast("Add at least one exercise before sending the plan"); return; }
-  if (!c.email) { toast("Add the client's email first"); const f = $("#f-email"); if (f) f.focus(); return; }
-  if (!c.plan.sentAt) { c.plan.sentAt = new Date().toISOString(); clearTimeout(S.saveT); saveNow(); renderRail(); setTimeout(renderMain, 300); }
+  markSent(c);
   const name = first(c.name) || "there", ther = c.therapist_name || myName() || "your therapist";
   const subject = "Your home exercise program";
   const body = `Hi ${name},\n\nHere's your home exercise program. It has your exercises with demo videos, and you can log pain, add notes, or send me questions right from the page:\n\n${patientUrl(c)}\n\nBookmark it. I'll update it as we go.\n\n${ther}`;
@@ -378,7 +397,7 @@ function openNewClient() {
   $("#nc-body").innerHTML = `
     <form id="nc-form" style="display:grid;gap:12px">
       <label class="f" for="nc-name">Client name<input class="in" id="nc-name" required autocomplete="off"></label>
-      <label class="f" for="nc-email">Client email<input class="in" id="nc-email" type="email" required autocomplete="off"></label>
+      <label class="f" for="nc-email">Client email (optional)<input class="in" id="nc-email" type="email" autocomplete="off" placeholder="Add now or later"></label>
       <label class="f" for="nc-focus">Focus<input class="in" id="nc-focus" placeholder="e.g. Shoulder rehab" autocomplete="off"></label>
       <p class="hint">Next you'll build their plan. Nothing is sent until you click <b>Send plan</b>.</p>
       <div><button class="btn primary" type="submit" id="nc-go">Save client</button></div>
@@ -492,10 +511,11 @@ function renderInbox() {
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   box.innerHTML = `
     <div class="ib-head"><b>Notifications</b>${S.unread.length ? `<button class="btn link" data-act="mark-all" type="button">Mark all read</button>` : ""}</div>
+    ${readyUnsent().map(c => `<button class="ib-item ib-unsent" type="button" data-act="inbox-plan" data-id="${c.id}"><span><b>${esc(c.name || "Untitled client")}</b>'s plan is ready but not sent</span><small>Open it and click Send plan or Copy link</small></button>`).join("")}
     ${S.unread.length ? S.unread.map(u => `<button class="ib-item" type="button" data-act="inbox-open" data-id="${u.client_id}">
         <span><b>${esc(name(u.client_id))}</b> ${u.kind === "pain" ? `logged pain <b>${u.pain}/10</b>${u.activity ? " · " + esc(u.activity) : ""}` : u.kind === "question" ? "asked a question" : u.kind === "note" ? `added a note on ${esc(u.exercise_name || "an exercise")}` : "replied"}</span>
         ${u.body ? `<small>${esc(u.body.slice(0, 90))}</small>` : ""}<small class="when">${ago(u.created_at)}</small></button>`).join("")
-      : `<p class="hint" style="padding:14px">You're all caught up.</p>`}
+      : readyUnsent().length ? "" : `<p class="hint" style="padding:14px">You're all caught up.</p>`}
     ${perm === "default" ? `<div class="ib-foot"><button class="btn sm" data-act="alerts" type="button">Turn on desktop alerts</button></div>` : ""}`;
 }
 
