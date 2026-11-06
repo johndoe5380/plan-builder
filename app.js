@@ -99,7 +99,10 @@ async function loadClients() {
 }
 function normPlan(p) {
   p = p || {}; p.goals = p.goals || []; p.sections = p.sections || []; p.guard = p.guard || { intro: "", threshold: 3, signs: [] };
-  p.guard.signs = p.guard.signs || []; p.sections.forEach(s => { s.id = s.id || uid(); s.exercises = s.exercises || []; s.exercises.forEach(e => e.id = e.id || uid()); });
+  p.guard.signs = p.guard.signs || [];
+  p.care = p.care || []; p.restrictions = p.restrictions || [];
+  p.redflags = p.redflags || { intro: "", phone: "", items: [] }; p.redflags.items = p.redflags.items || [];
+  p.care.forEach(x => x.id = x.id || uid()); p.restrictions.forEach(x => x.id = x.id || uid()); p.sections.forEach(s => { s.id = s.id || uid(); s.exercises = s.exercises || []; s.exercises.forEach(e => e.id = e.id || uid()); });
   return p;
 }
 async function loadUnread() {
@@ -261,6 +264,46 @@ function renderEditor() {
       </div>`).join("")}
   </section>
   <section class="card">
+    <div class="card-head"><div><h2>Home care &amp; precautions</h2><p class="hint">Pick from common instructions and edit the wording, or write your own. Empty parts don't show on the client's page.</p></div></div>
+
+    <div class="cg">
+      <div class="cg-head"><h3>Restrictions</h3><span class="hint">Shown at the top of their page</span></div>
+      ${p.restrictions.map((r, i) => `<div class="rrow">
+        <textarea class="in" rows="1" id="rs-${r.id}" data-b="plan.restrictions.${i}.text" aria-label="Restriction">${esc(r.text)}</textarea>
+        <label class="mini" for="rsu-${r.id}">Until<input class="in" type="date" id="rsu-${r.id}" data-b="plan.restrictions.${i}.until" value="${esc(r.until || "")}"></label>
+        <button class="icon-btn" data-act="care-del" data-kind="r" data-i="${i}" type="button" aria-label="Remove restriction">${TRASH}</button>
+        ${careVid(r, "r", i)}</div>`).join("")}
+      <div class="add-ex"><button class="btn sm" data-act="care-pick" data-kind="r" type="button">+ From list</button><button class="btn sm" data-act="care-add" data-kind="r" type="button">+ Write your own</button></div>
+    </div>
+
+    <div class="cg">
+      <div class="cg-head"><h3>Home care</h3><span class="hint">Ice, elevation, positioning, walking program…</span></div>
+      ${p.care.map((x, i) => `<div class="crow">
+        <div class="crow-top">
+          <label class="mini" for="ct-${x.id}">Instruction<input class="in ex-name" id="ct-${x.id}" data-b="plan.care.${i}.title" value="${esc(x.title)}"></label>
+          <label class="mini" for="cf-${x.id}">How often<input class="in" id="cf-${x.id}" data-b="plan.care.${i}.freq" value="${esc(x.freq)}"></label>
+          <label class="mini" for="cu-${x.id}">Until<input class="in" type="date" id="cu-${x.id}" data-b="plan.care.${i}.until" value="${esc(x.until || "")}"></label>
+          <label class="chk" for="cd-${x.id}"><input type="checkbox" id="cd-${x.id}" data-b="plan.care.${i}.daily"${x.daily ? " checked" : ""}> Daily checklist</label>
+          <button class="icon-btn" data-act="care-del" data-kind="c" data-i="${i}" type="button" aria-label="Remove">${TRASH}</button>
+        </div>
+        <textarea class="in" rows="1" id="cx-${x.id}" data-b="plan.care.${i}.detail" placeholder="Details for the client" aria-label="Details">${esc(x.detail)}</textarea>
+        ${careVid(x, "c", i)}
+      </div>`).join("")}
+      <div class="add-ex"><button class="btn sm" data-act="care-pick" data-kind="c" type="button">+ From list</button><button class="btn sm" data-act="care-add" data-kind="c" type="button">+ Write your own</button></div>
+    </div>
+
+    <div class="cg cg-red">
+      <div class="cg-head"><h3>Call us if…</h3><span class="hint">Warning signs that need a call or medical care, not just backing off</span></div>
+      <div class="fields" style="grid-template-columns:minmax(0,1fr) 200px;margin-bottom:10px">
+        <label class="f" for="rf-intro">Message<input class="in" id="rf-intro" data-b="plan.redflags.intro" value="${esc(p.redflags.intro)}" placeholder="Call the clinic right away if you notice any of these."></label>
+        <label class="f" for="rf-phone">Clinic phone<input class="in" id="rf-phone" data-b="plan.redflags.phone" value="${esc(p.redflags.phone)}" placeholder="(303) 555-0100"></label>
+      </div>
+      ${p.redflags.items.map((s, i) => `<div class="sign-row"><input class="in" id="rfi-${i}" data-b="plan.redflags.items.${i}" value="${esc(s)}" aria-label="Warning sign"><button class="icon-btn" data-act="care-del" data-kind="f" data-i="${i}" type="button" aria-label="Remove">${TRASH}</button></div>`).join("")}
+      <div class="add-ex"><button class="btn sm" data-act="care-pick" data-kind="f" type="button">+ From list</button><button class="btn sm" data-act="care-add" data-kind="f" type="button">+ Write your own</button></div>
+    </div>
+  </section>
+
+  <section class="card">
     <div class="card-head"><div><h2>When to back off</h2><p class="hint">Shown to the client as a pain scale plus stop signs.</p></div></div>
     <div class="fields" style="grid-template-columns:minmax(0,1fr) 140px;margin-bottom:12px">
       <label class="f" for="gd-intro">Message<input class="in" id="gd-intro" data-b="plan.guard.intro" value="${esc(p.guard.intro)}"></label>
@@ -271,6 +314,15 @@ function renderEditor() {
   </section>
   <div style="display:flex;justify-content:flex-end"><button class="btn sm" data-act="archive" type="button" style="color:var(--stop)">Remove this client</button></div>
   </div>`;
+}
+function careVid(x, kind, i) {
+  const v = x.video;
+  return `<div class="cvid">${v
+    ? `<button class="cv-thumb" type="button" data-act="care-video" data-kind="${kind}" data-i="${i}" aria-label="Change video"><img src="${thumb(v.id)}" alt="" loading="lazy"><span class="pi"><span>${PLAY}</span></span></button>
+       <span class="vtitle">▶ ${esc(v.title)}</span>
+       <button class="btn link" type="button" data-act="care-video" data-kind="${kind}" data-i="${i}">Change</button>
+       <button class="btn link" type="button" data-act="care-video-del" data-kind="${kind}" data-i="${i}" style="color:var(--muted)">Remove video</button>`
+    : `<button class="btn link" type="button" data-act="care-video" data-kind="${kind}" data-i="${i}">+ Add a how-to video (optional)</button>`}</div>`;
 }
 function exRow(e, si, ei) {
   const v = e.video;
@@ -310,7 +362,7 @@ async function saveNow() {
 document.addEventListener("input", e => {
   const el = e.target.closest("[data-b]"); if (!el || !$("#ed")) return;
   const c = cur(); if (!c) return;
-  let val = el.value;
+  let val = el.type === "checkbox" ? el.checked : el.value;
   if (el.dataset.num) val = Math.max(0, Math.min(10, parseInt(val || "0", 10) || 0));
   setPath(c, el.dataset.b, val);
   const m = el.dataset.b.match(/^plan\.sections\.(\d+)\.exercises\.(\d+)\.freq$/);
@@ -340,6 +392,20 @@ document.addEventListener("click", async e => {
     case "del-section": c.plan.sections.splice(si, 1); rerender(); break;
     case "add-blank": c.plan.sections[si].exercises.push({ id: uid(), name: "", reps: "", load: "", freq: "", perWeek: 0, notes: "", video: null }); rerender(); break;
     case "del-ex": c.plan.sections[si].exercises.splice(ei, 1); rerender(); break;
+    case "care-pick": openCarePick(b.dataset.kind); break;
+    case "care-video": openPicker({ mode: "replace", target: { kind: b.dataset.kind, i } }); break;
+    case "care-video-del": { const it = (b.dataset.kind === "r" ? c.plan.restrictions : c.plan.care)[i]; delete it.video; rerender(); break; }
+    case "care-add": {
+      const k = b.dataset.kind;
+      if (k === "r") c.plan.restrictions.push({ id: uid(), text: "", until: "" });
+      else if (k === "c") c.plan.care.push({ id: uid(), cat: "", title: "", freq: "", until: "", daily: false, detail: "" });
+      else c.plan.redflags.items.push("");
+      rerender(); break;
+    }
+    case "care-del": {
+      const k = b.dataset.kind;
+      (k === "r" ? c.plan.restrictions : k === "c" ? c.plan.care : c.plan.redflags.items).splice(i, 1); rerender(); break;
+    }
     case "add-sign": c.plan.guard.signs.push(""); rerender(); break;
     case "del-sign": c.plan.guard.signs.splice(i, 1); rerender(); break;
     case "open-picker": openPicker({ mode: "add", si }); break;
@@ -522,9 +588,16 @@ function renderInbox() {
 /* ================= picker ================= */
 const pk = { mode: "add", si: 0, ei: 0, tab: "lib", q: "", region: "All", sel: null, ytQ: "", ytRes: null, ytErr: "", ytLoading: false, paste: "", pasteMsg: "" };
 const dlg = $("#picker");
+const careItem = t => (t.kind === "r" ? cur().plan.restrictions : cur().plan.care)[t.i];
+const shortLabel = s => String(s || "").split(/[.:(]/)[0].replace(/^(no|don't|do not)\s+/i, "").slice(0, 40).trim();
 function openPicker(o) {
-  Object.assign(pk, o, { sel: null, pasteMsg: "" });
-  if (o.mode === "replace") { const ex = cur().plan.sections[o.si].exercises[o.ei]; pk.ytQ = ex.name || pk.ytQ; $("#pk-title").textContent = "Choose a video" + (ex.name ? " for " + ex.name : ""); }
+  Object.assign(pk, { target: null }, o, { sel: null, pasteMsg: "" });
+  if (o.target) {
+    const it = careItem(o.target), label = o.target.kind === "r" ? shortLabel(it.text) : it.title;
+    $("#pk-title").textContent = "How-to video" + (label ? " for " + label : "");
+    pk.tab = "lib"; pk.region = "All"; pk.q = label ? label + " physical therapy" : ""; pk.ytQ = pk.q;
+    if (apiKey() && pk.q.trim().length >= 3 && pk.libYtQ !== pk.q.trim()) libYtSearch(pk.q.trim());
+  } else if (o.mode === "replace") { const ex = cur().plan.sections[o.si].exercises[o.ei]; pk.ytQ = ex.name || pk.ytQ; $("#pk-title").textContent = "Choose a video" + (ex.name ? " for " + ex.name : ""); }
   else $("#pk-title").textContent = "Add exercise";
   setTab(pk.tab);
   dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
@@ -632,7 +705,7 @@ $("#pk-pane").addEventListener("click", e => {
 function renderPreview() {
   const box = $("#pk-preview"), v = pk.sel;
   if (!v) { box.innerHTML = `<div class="player">Pick a video to watch it here</div><p class="hint">Preview plays right here. No trip to YouTube.</p>`; return; }
-  const ex = pk.mode === "replace" ? cur().plan.sections[pk.si].exercises[pk.ei] : null;
+  const ex = pk.mode === "replace" && !pk.target ? cur().plan.sections[pk.si].exercises[pk.ei] : null;
   box.innerHTML = `
     <div class="player"><iframe src="${embed(v.id)}" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
     <div><h4>${esc(v.title)}</h4><div class="meta">${esc(v.channel || "")}</div></div>
@@ -647,7 +720,8 @@ function guessName(t) { return String(t || "").split(/[|\-–—:(]/)[0].replace
 function useSelection() {
   const c = cur(), v = pk.sel; if (!v) return;
   const video = { id: v.id, title: v.title, channel: v.channel };
-  if (pk.mode === "replace") { c.plan.sections[pk.si].exercises[pk.ei].video = video; toast("Video updated"); }
+  if (pk.target) { careItem(pk.target).video = video; toast("Video added"); }
+  else if (pk.mode === "replace") { c.plan.sections[pk.si].exercises[pk.ei].video = video; toast("Video updated"); }
   else {
     const freq = $("#pk-freq").value.trim();
     c.plan.sections[pk.si].exercises.push({ id: uid(), name: $("#pk-name").value.trim() || guessName(v.title), reps: $("#pk-reps").value.trim(), load: "", freq, perWeek: perWeekFrom(freq), notes: "", video });
@@ -655,6 +729,38 @@ function useSelection() {
   }
   scheduleSave(); closePicker(); renderEditor(); renderRail();
 }
+
+/* ---------- home-care preset picker ---------- */
+const cp = $("#carepick");
+function openCarePick(kind) {
+  const c = cur(), P = window.CARE_PRESETS || { restrictions: [], care: [], redflags: [] };
+  const titles = { r: "Add restrictions", c: "Add home care", f: "Add warning signs" };
+  let items;
+  if (kind === "r") items = P.restrictions.map(x => ({ cat: x.cat, label: x.text, sub: "", have: c.plan.restrictions.some(r => r.text === x.text), val: x }));
+  else if (kind === "c") items = P.care.map(x => ({ cat: x.cat, label: x.title, sub: `${x.freq} · ${x.detail}`, have: c.plan.care.some(r => r.title === x.title), val: x }));
+  else items = P.redflags.map(x => ({ cat: "", label: x, sub: "", have: c.plan.redflags.items.includes(x), val: x }));
+  const cats = [...new Set(items.map(x => x.cat))];
+  $("#cp-title").textContent = titles[kind];
+  $("#cp-body").innerHTML = `
+    <p class="hint" style="margin:0 0 12px">These are starting points. Edit the wording after adding so it matches what you told ${esc(first(c.name) || "the client")}.</p>
+    ${cats.map(cat => `${cat ? `<h4 class="res-h">${esc(cat)}</h4>` : ""}<div class="cp-list">
+      ${items.map((x, i) => x.cat !== cat ? "" : `<label class="cp-item${x.have ? " have" : ""}" for="cp-${i}"><input type="checkbox" id="cp-${i}" data-cpi="${i}"${x.have ? " checked disabled" : ""}><span><b>${esc(x.label)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}${x.have ? '<small class="ok">Already in plan</small>' : ""}</span></label>`).join("")}
+    </div>`).join("")}`;
+  const go = $("#cp-go"); go.disabled = true; go.textContent = "Add selected";
+  $("#cp-body").onchange = () => { const n = $$("#cp-body [data-cpi]:checked:not(:disabled)").length; go.disabled = !n; go.textContent = n ? `Add ${n}` : "Add selected"; };
+  go.onclick = () => {
+    $$("#cp-body [data-cpi]:checked:not(:disabled)").forEach(el => {
+      const v = items[+el.dataset.cpi].val;
+      if (kind === "r") c.plan.restrictions.push({ id: uid(), text: v.text, until: "" });
+      else if (kind === "c") c.plan.care.push({ id: uid(), cat: v.cat, title: v.title, freq: v.freq, until: "", daily: !!v.daily, detail: v.detail });
+      else c.plan.redflags.items.push(v);
+    });
+    if (kind === "f" && !c.plan.redflags.intro) c.plan.redflags.intro = "Call the clinic right away if you notice any of these.";
+    cp.close(); scheduleSave(); renderEditor(); toast("Added. Edit the wording to fit this client.");
+  };
+  cp.showModal ? cp.showModal() : cp.setAttribute("open", "");
+}
+$("#cp-close").onclick = () => cp.close();
 
 /* ---------- settings ---------- */
 const st = $("#settings");
@@ -679,6 +785,9 @@ async function renderPatient(token, isPreview) {
   P.data = data; const c = data.client, p = normPlan(c.plan);
   document.title = (c.name ? c.name + " · " : "") + "Home Program";
   const th = Math.max(0, Math.min(10, +p.guard.threshold || 0)), T = first(c.therapist_name) || "your therapist";
+  const tdy = localDay();
+  const activeR = p.restrictions.filter(r => r.text && (!r.until || r.until >= tdy));
+  const activeC = p.care.filter(x => x.title && (!x.until || x.until >= tdy));
   $("#app").innerHTML = `
   ${isPreview ? `<div class="backbar"><div class="pv-wrap gut"><span>Client preview. Anything you post here shows up as the client.</span><button type="button" id="back">Back to editor</button></div></div>` : ""}
   <div class="pv">
@@ -690,6 +799,10 @@ async function renderPatient(token, isPreview) {
     <nav class="pv-nav"><a href="#log" data-jump="log">Log pain</a><a href="#ask" data-jump="ask">Ask ${esc(T)}</a><span id="pv-newreplies"></span></nav>
   </div></header>
   <main class="pv-main"><div class="pv-wrap gut">
+    ${activeR.length ? `<section class="restr" aria-labelledby="restr-h"><div class="eyebrow">Important</div><h2 class="pv-h" id="restr-h">Restrictions</h2>
+      <ul>${activeR.map(r => `<li><div class="r-main"><span class="r-text">${esc(r.text)}</span><span class="r-until">${r.until ? "Until " + esc(fmtDay(r.until)) : "Until " + esc(T) + " clears you"}</span></div>
+        ${r.video ? `<button class="howto" type="button" data-howto="${esc(r.video.id)}">▶ Watch how</button><div class="howto-player" hidden></div>` : ""}</li>`).join("")}</ul>
+    </section>` : ""}
     ${p.goals.filter(g => g.title).length ? `<section><div class="eyebrow">What we're working toward</div><h2 class="pv-h">Goals</h2><div class="goals">
       ${p.goals.filter(g => g.title).map(g => `<div class="goal"><span class="pill${g.status === "Ongoing" ? "" : " next"}">${esc(g.status)}</span><h3>${esc(g.title)}</h3>${g.detail ? `<p>${esc(g.detail)}</p>` : ""}</div>`).join("")}
     </div></section>` : ""}
@@ -707,6 +820,20 @@ async function renderPatient(token, isPreview) {
           </details>
         </div></article>`).join("")}
     </section>`).join("")}
+
+    ${activeC.length ? `<section id="care"><div class="eyebrow">Every day</div><h2 class="pv-h">Home care</h2>
+      ${activeC.some(x => x.daily) ? `<div class="today" id="care-today"></div>` : ""}
+      <div class="care-grid">${activeC.map(x => `<article class="care">
+        ${x.video ? `<button class="pplay sm" type="button" data-play="${esc(x.video.id)}" aria-label="Play video: ${esc(x.title)}"><img src="${thumb(x.video.id)}" alt="" loading="lazy"><span class="pi"><span>${PLAY}</span></span><small>How to</small></button>` : ""}
+        <div class="care-body">
+          ${x.cat ? `<span class="tag">${esc(x.cat)}</span>` : ""}
+          <h3>${esc(x.title || "Home care")}</h3>
+          ${x.freq ? `<div class="care-freq">${esc(x.freq)}</div>` : ""}
+          ${x.detail ? `<p>${esc(x.detail)}</p>` : ""}
+          ${x.until ? `<small class="muted">Until ${esc(fmtDay(x.until))}</small>` : ""}
+          ${x.daily ? `<button class="donebtn" type="button" data-done="${esc(x.id)}" aria-pressed="false">Mark done today</button>` : ""}
+        </div></article>`).join("")}</div>
+    </section>` : ""}
 
     <section id="log"><div class="eyebrow">Throughout the day</div><h2 class="pv-h">Log pain</h2>
       <form class="pv-card" id="painform">
@@ -732,6 +859,12 @@ async function renderPatient(token, isPreview) {
       <div class="scale-key"><span>0–${th}: OK to keep going</span><span>Above ${th}/10: stop or modify</span></div>
       <ul class="stops">${p.guard.signs.filter(Boolean).map(s => `<li>${esc(s)}</li>`).join("")}</ul>
     </div></section>` : ""}
+    ${p.redflags.items.filter(Boolean).length ? `<section class="redflags" aria-labelledby="rf-h"><div class="eyebrow">Don't wait</div><h2 class="pv-h" id="rf-h">Call us if…</h2>
+      <p>${esc(p.redflags.intro || "Call the clinic right away if you notice any of these.")}</p>
+      <ul>${p.redflags.items.filter(Boolean).map(s => `<li>${esc(s)}</li>`).join("")}</ul>
+      ${p.redflags.phone ? `<p class="rf-phone">Clinic: <span class="sel">${esc(p.redflags.phone)}</span> <a class="btn sm" href="tel:${esc(p.redflags.phone.replace(/[^\d+]/g, ""))}">Call</a></p>` : ""}
+      <p class="rf-911">Chest pain, trouble breathing, or any emergency: call 911.</p>
+    </section>` : ""}
   </div></main>
   <footer class="pv-foot"><div class="pv-wrap gut"><span>Onward Physical Therapy</span><span>Bookmark this page. ${esc(T)} keeps it up to date.</span></div></footer>
   </div>`;
@@ -742,6 +875,7 @@ async function renderPatient(token, isPreview) {
     b.innerHTML = `<iframe src="${embed(b.dataset.play)}" title="Exercise video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`; b.style.cursor = "default"; b.removeAttribute("data-play");
   }, { once: true }));
   bindTrackers();
+  bindCare();
   bindPatientForms(th);
   renderPatientLists();
   setTimeout(() => sb.rpc("patient_mark_read", { p_token: token }), 4000);
@@ -750,6 +884,24 @@ async function renderPatient(token, isPreview) {
 async function refreshPatient() {
   const { data } = await sb.rpc("patient_get", { p_token: P.token });
   if (data) { const had = P.data.entries.length; P.data = data; renderPatientLists(); if (data.entries.length > had && data.entries.some(e => e.author === "therapist" && !e.read_by_patient)) { toast("New reply from " + (first(data.client.therapist_name) || "your therapist")); setTimeout(() => sb.rpc("patient_mark_read", { p_token: P.token }), 4000); } }
+}
+function localDay(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function fmtDay(s) { const d = new Date(s + "T12:00:00"); return isNaN(d) ? s : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function bindCare() {
+  $$("[data-howto]").forEach(b => b.onclick = () => {
+    const box = b.nextElementSibling; const open = box.hidden;
+    box.hidden = !open; b.textContent = open ? "Hide video" : "▶ Watch how";
+    box.innerHTML = open ? `<div class="player"><iframe src="${embed(b.dataset.howto)}" title="How-to video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : "";
+  });
+  const btns = $$("[data-done]"); if (!btns.length) return;
+  const day = localDay(), key = id => "care-" + P.token.slice(0, 8) + "-" + id + "-" + day;
+  const paint = () => {
+    let n = 0;
+    btns.forEach(b => { const on = lsGet(key(b.dataset.done)) === "1"; if (on) n++; b.setAttribute("aria-pressed", String(on)); b.textContent = on ? "✓ Done today" : "Mark done today"; });
+    const t = $("#care-today"); if (t) t.innerHTML = `<b>Today:</b> ${n} of ${btns.length} done${n === btns.length ? " ✓" : ""}<span class="bar"><span style="width:${Math.round(n / btns.length * 100)}%"></span></span>`;
+  };
+  btns.forEach(b => b.onclick = () => { lsSet(key(b.dataset.done), lsGet(key(b.dataset.done)) === "1" ? "0" : "1"); paint(); });
+  paint();
 }
 function bindTrackers() {
   const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));

@@ -141,6 +141,72 @@ dialog::backdrop{background:rgba(0,20,20,.55)}
 .unsent b{color:var(--warn);font-size:13.5px}
 .unsent small{color:var(--muted);font-size:12.5px}
 .ib-unsent{box-shadow:inset 3px 0 0 var(--warn)}
+/* home care: editor */
+.cg{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface-2)}
+.cg + .cg{margin-top:12px}
+.cg-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.cg-head h3{margin:0;font:700 19px/1 var(--display);text-transform:uppercase;letter-spacing:.04em}
+.cg-red{border-color:color-mix(in srgb,var(--stop) 45%,var(--line))}
+.cg-red h3{color:var(--stop)}
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:8px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.rrow .cvid{grid-column:1 / -1}
+.crow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;display:grid;gap:8px}
+.crow-top{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) 150px auto auto;gap:8px;align-items:end}
+.crow .in,.rrow .in{padding:7px 9px;font-size:14px}
+.chk{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap;padding-bottom:8px;cursor:pointer}
+.cvid{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.cvid .vtitle{flex:1;min-width:0}
+.cvid .btn.link{font-size:12.5px;padding:0}
+.cv-thumb{position:relative;width:84px;aspect-ratio:16/10;border-radius:6px;overflow:hidden;border:none;padding:0;cursor:pointer;background:var(--brand);flex:none}
+.cv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.cv-thumb .pi{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.2)}
+.cv-thumb .pi span{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center}
+.cp-list{display:grid;gap:6px}
+.cp-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:9px 11px;cursor:pointer;font-size:14px}
+.cp-item:hover{border-color:var(--accent)}
+.cp-item input{margin-top:3px;accent-color:var(--accent)}
+.cp-item span{display:grid;gap:2px}
+.cp-item small{color:var(--muted);font-size:12.5px}
+.cp-item.have{opacity:.6;cursor:default}
+.cp-item .ok{color:var(--accent)}
+#carepick .dlg{max-height:calc(100vh - 40px)}
+/* home care: patient */
+.restr{border:2px solid var(--stop);border-radius:14px;padding:18px 20px;background:color-mix(in srgb,var(--stop) 7%,var(--surface))}
+.restr .eyebrow{color:var(--stop)}
+.restr ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.restr li{display:grid;gap:8px;padding-left:28px;position:relative}
+.restr li::before{content:"";position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;border:2.5px solid var(--stop);background:linear-gradient(135deg,transparent 44%,var(--stop) 44%,var(--stop) 56%,transparent 56%)}
+.r-main{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.r-text{font-weight:600;font-size:15.5px}
+.r-until{font-size:12.5px;color:var(--muted)}
+.howto{justify-self:start;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer}
+.howto-player{max-width:420px}
+.today{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;font-size:14px}
+.today .bar{flex:1;min-width:120px;max-width:260px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.today .bar span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.care-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.care{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.care .pplay.sm{border-radius:0}
+.care-body{padding:14px 16px;display:grid;gap:6px;align-content:start}
+.care-body h3{margin:0;font-size:17px}
+.care-body p{margin:0;color:var(--muted);font-size:14.5px}
+.care-freq{font:500 13.5px/1.3 var(--mono);color:var(--accent)}
+.muted{color:var(--muted)}
+.donebtn{justify-self:start;margin-top:4px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:99px;padding:6px 12px;font-weight:600;font-size:13px;cursor:pointer}
+.donebtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.redflags{border:2px solid var(--stop);border-radius:14px;padding:18px 20px;background:color-mix(in srgb,var(--stop) 7%,var(--surface))}
+.redflags .eyebrow,.redflags h2{color:var(--stop)}
+.redflags > p{margin:0 0 10px}
+.redflags ul{margin:0 0 12px;padding-left:20px;display:grid;gap:6px}
+.rf-phone{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:600}
+.sel{user-select:all;font-family:var(--mono)}
+.rf-911{font-size:13.5px;color:var(--stop);font-weight:700;margin:6px 0 0}
+@media (max-width:720px){
+  .crow-top{grid-template-columns:1fr 1fr}
+  .crow-top > :first-child{grid-column:1 / -1}
+  .rrow{grid-template-columns:1fr auto}
+  .rrow > label{grid-column:1}
+}
 .res-h{margin:16px 0 10px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);display:flex;gap:8px;align-items:baseline}
 .res-h:first-of-type{margin-top:4px}
 .res-h span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
@@ -344,6 +410,14 @@ dialog::backdrop{background:rgba(0,20,20,.55)}
   </div>
 </dialog>
 
+<dialog id="carepick" aria-labelledby="cp-title">
+  <div class="dlg" style="max-width:680px">
+    <div class="dlg-head"><h3 id="cp-title">Add home care</h3><button class="btn sm" id="cp-close" type="button">Close</button></div>
+    <div id="cp-body" style="padding:14px 18px;overflow:auto"></div>
+    <div style="padding:12px 18px 18px;border-top:1px solid var(--line)"><button class="btn primary" id="cp-go" type="button" disabled>Add selected</button></div>
+  </div>
+</dialog>
+
 <dialog id="newclient" aria-labelledby="nc-title">
   <div class="dlg" style="max-width:520px">
     <div class="dlg-head"><h3 id="nc-title">New client</h3><button class="btn sm" id="nc-close" type="button">Close</button></div>
@@ -352,8 +426,9 @@ dialog::backdrop{background:rgba(0,20,20,.55)}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
-<script src="config.js?v=7"></script>
-<script src="library.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="library.js?v=8"></script>
+<script src="care.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
